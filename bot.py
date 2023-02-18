@@ -4,6 +4,7 @@ import os
 import re
 from random import choice
 from time import sleep
+from typing import TextIO
 
 from dotenv import load_dotenv
 from telegram import ForceReply, Update
@@ -23,6 +24,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 TOKEN = os.getenv('TOKEN')
+print(TOKEN)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
