@@ -4,7 +4,6 @@ import os
 import re
 from random import choice
 from time import sleep
-from typing import TextIO
 
 from dotenv import load_dotenv
 from telegram import ForceReply, Update
@@ -18,13 +17,13 @@ from telegram.ext import (
 
 from text import text_choice
 
-load_dotenv()
+
+load_dotenv(os.getcwd() + '/.ENV')
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 TOKEN = os.getenv('TOKEN')
-print(TOKEN)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
