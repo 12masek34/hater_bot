@@ -40,7 +40,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     """Send a message when the command /help is issued."""
 
     await update.message.reply_text(
-        'hater_bot v0.1\n\n'
+        'hater_bot v0.2\n\n'
         'Возможности.\n'
         '1. Если в вашем сообщении содержится хотя бы одна ссылка, вы получите от меня оскорбление.\n\n'
         '2. Я реализую примитивную копию утилиты sed (потоковый редактор). Пример: отправьте s/regexp/new_value '
@@ -53,15 +53,23 @@ async def hate_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     message_id = update.message.message_id if update.message is not None else None
     chat_id = update.message.chat_id if update.message is not None else None
+    forward_message = update.message.forward_from_chat if update.message is not None else None
     URL_PATTERN = r'[A-Za-z0-9]+://[A-Za-z0-9%-_]+(/[A-Za-z0-9%-_])*(#|\\?)[A-Za-z0-9%-_&=]*'
     link = re.match(URL_PATTERN, update.message.text)
+    hate_message = choice(text_choice)
     if link is not None:
-        message = choice(text_choice)
         sleep(choice(range(1,6)))
         await context.bot.send_message(
             chat_id=chat_id,
             reply_to_message_id=message_id,
-            text=message,
+            text=hate_message,
+        )
+    elif forward_message is not None:
+        sleep(choice(range(1,6)))
+        await context.bot.send_message(
+            chat_id=chat_id,
+            reply_to_message_id=message_id,
+            text=hate_message,
         )
     elif update.message.text.startswith('s/'):
         pattern = update.message.text.split('/')
@@ -70,8 +78,22 @@ async def hate_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             new_text = re.sub(rf'{pattern[1]}', rf'{pattern[2]}', message.text)
             await context.bot.send_message(
                 chat_id=chat_id,
-                reply_to_message_id=message_id,
+                reply_to_message_id=update.message.reply_to_message.id,
                 text=new_text,
+        )
+
+
+async def hate_forward(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    forward_message = update.message.forward_from_chat if update.message is not None else None
+    message_id = update.message.message_id if update.message is not None else None
+    chat_id = update.message.chat_id if update.message is not None else None
+    if forward_message is not None:
+        hate_message = choice(text_choice)
+        sleep(choice(range(1,6)))
+        await context.bot.send_message(
+            chat_id=chat_id,
+            reply_to_message_id=message_id,
+            text=hate_message,
         )
 
 
@@ -82,6 +104,7 @@ def main() -> None:
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', help_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, hate_link))
+    application.add_handler(MessageHandler(~filters.COMMAND, hate_forward))
     application.run_polling()
 
 
