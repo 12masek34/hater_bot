@@ -1,4 +1,5 @@
 
+import asyncio
 import logging
 import os
 import re
@@ -6,7 +7,10 @@ from random import choice
 from time import sleep
 
 from dotenv import load_dotenv
-from telegram import ForceReply, Update
+from telegram import (
+    ForceReply,
+    Update,
+)
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -15,8 +19,10 @@ from telegram.ext import (
     filters,
 )
 
-from text import text_choice
-
+from helpers import (
+    create_hate_message,
+    delete_message_task,
+)
 
 load_dotenv(os.getcwd() + '/.ENV')
 logging.basicConfig(
@@ -48,29 +54,45 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
 
 
+async def new_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+
+    await update.message.reply_text(
+        '1. Сообщения бота удаляются автоматически через 5 минут.\n'
+        '2. Оскорбления генеррируются в стороннем сервисе.'
+    )
+
+
+
 async def hate_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Echo the user message."""
 
     message_id = update.message.message_id if update.message is not None else None
     chat_id = update.message.chat_id if update.message is not None else None
     forward_message = update.message.forward_from_chat if update.message is not None else None
     URL_PATTERN = r'[A-Za-z0-9]+://[A-Za-z0-9%-_]+(/[A-Za-z0-9%-_])*(#|\\?)[A-Za-z0-9%-_&=]*'
     link = re.match(URL_PATTERN, update.message.text)
-    hate_message = choice(text_choice)
+    hate_message = create_hate_message()
+
     if link is not None:
-        sleep(choice(range(1,6)))
-        await context.bot.send_message(
+        await asyncio.sleep(choice(range(1,6)))
+        msg = await context.bot.send_message(
             chat_id=chat_id,
             reply_to_message_id=message_id,
             text=hate_message,
         )
+        loop = asyncio.get_event_loop()
+        loop.create_task(delete_message_task(context.bot.deleteMessage, msg.message_id, msg.chat_id))
+
+
     elif forward_message is not None:
         sleep(choice(range(1,6)))
-        await context.bot.send_message(
+        msg = await context.bot.send_message(
             chat_id=chat_id,
             reply_to_message_id=message_id,
             text=hate_message,
         )
+        loop = asyncio.get_event_loop()
+        loop.create_task(delete_message_task(context.bot.deleteMessage, msg.message_id, msg.chat_id))
+
     elif update.message.text.startswith('s/'):
         pattern = update.message.text.split('/')
         message = update.message.reply_to_message
@@ -80,21 +102,24 @@ async def hate_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 chat_id=chat_id,
                 reply_to_message_id=update.message.reply_to_message.id,
                 text=new_text,
-        )
+            )
 
 
 async def hate_forward(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     forward_message = update.message.forward_from_chat if update.message is not None else None
     message_id = update.message.message_id if update.message is not None else None
     chat_id = update.message.chat_id if update.message is not None else None
+
     if forward_message is not None:
-        hate_message = choice(text_choice)
+        hate_message = create_hate_message()
         sleep(choice(range(1,6)))
-        await context.bot.send_message(
+        msg = await context.bot.send_message(
             chat_id=chat_id,
             reply_to_message_id=message_id,
             text=hate_message,
         )
+        loop = asyncio.get_event_loop()
+        loop.create_task(delete_message_task(context.bot.deleteMessage, msg.message_id, msg.chat_id))
 
 
 def main() -> None:
@@ -103,6 +128,7 @@ def main() -> None:
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', help_command))
+    application.add_handler(CommandHandler('new', new_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, hate_link))
     application.add_handler(MessageHandler(~filters.COMMAND, hate_forward))
     application.run_polling()
