@@ -6,7 +6,7 @@ import httpx
 
 
 async def delete_message_task(delete_message, message_id, chat_id):
-    await asyncio.sleep(300)
+    await asyncio.sleep(28800)
     await delete_message(message_id=message_id, chat_id=chat_id)
 
 
