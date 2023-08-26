@@ -1,14 +1,20 @@
 
 import asyncio
+import io
 import logging
 import os
 import re
-from random import choice
-from time import sleep
+from random import (
+    choice,
+)
+from time import (
+    sleep,
+)
 
-from dotenv import load_dotenv
+from dotenv import (
+    load_dotenv,
+)
 from telegram import (
-    ForceReply,
     Update,
 )
 from telegram.ext import (
@@ -22,6 +28,7 @@ from telegram.ext import (
 from helpers import (
     create_hate_message,
     delete_message_task,
+    voice_recognizer,
 )
 
 load_dotenv(os.getcwd() + '/.ENV')
@@ -32,35 +39,17 @@ logger = logging.getLogger(__name__)
 TOKEN = os.getenv('TOKEN')
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a message when the command /start is issued."""
-
-    user = update.effective_user
-    await update.message.reply_html(
-        rf'Привет {user.mention_html()}!',
-        reply_markup=ForceReply(selective=True),
-    )
-
-
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
 
     await update.message.reply_text(
-        'hater_bot v0.2\n\n'
+        'hater_bot v0.3\n\n'
         'Возможности.\n'
         '1. Если в вашем сообщении содержится хотя бы одна ссылка, вы получите от меня оскорбление.\n\n'
         '2. Я реализую примитивную копию утилиты sed (потоковый редактор). Пример: отправьте s/regexp/new_value '
-        'на сообщение которое хотите отредактировать.',
+        'на сообщение которое хотите отредактировать.'
+        '3. Переводит голосовые сообщения в текс.',
     )
-
-
-async def new_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-
-    await update.message.reply_text(
-        '1. Сообщения бота удаляются автоматически через 5 минут.\n'
-        '2. Оскорбления генеррируются в стороннем сервисе.'
-    )
-
 
 
 async def hate_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -122,13 +111,42 @@ async def hate_forward(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         loop.create_task(delete_message_task(context.bot.deleteMessage, msg.message_id, msg.chat_id))
 
 
+async def speach_to_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    file_name = 'audio.ogg'
+
+    with io.BytesIO() as f:
+        file = await context.bot.get_file(update.message.voice.file_id)
+
+        if int(file.file_size) >= 715000:
+            await context.bot.send_message(
+                chat_id=update.message.chat_id,
+                reply_to_message_id=update.message.message_id,
+                text='Файл большеват для перевода в текст.',
+                )
+            return
+
+        await file.download_to_memory(out=f)
+        file_data = f.getvalue()
+
+    with open(file_name, 'wb') as file:
+        file.write(file_data)
+
+    text = voice_recognizer(file_name)
+    msg = await context.bot.send_message(
+        chat_id=update.message.chat_id,
+        reply_to_message_id=update.message.message_id,
+        text=text,
+        )
+    loop = asyncio.get_event_loop()
+    loop.create_task(delete_message_task(context.bot.deleteMessage, msg.message_id, msg.chat_id))
+
+
 def main() -> None:
     """Start the bot."""
 
     application = Application.builder().token(TOKEN).build()
-    application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', help_command))
-    application.add_handler(CommandHandler('new', new_command))
+    application.add_handler(MessageHandler(filters.VOICE, speach_to_text))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, hate_link))
     application.add_handler(MessageHandler(~filters.COMMAND, hate_forward))
     application.run_polling()

@@ -31,3 +31,4 @@ sniffio==1.3.0
 stack-data==0.6.2
 traitlets==5.9.0
 wcwidth==0.2.6
+SpeechRecognitionSpeechRecognition==3.10.0
