@@ -7,6 +7,7 @@ import subprocess
 from pathlib import (
     Path,
 )
+from typing import Callable
 
 import httpx
 import speech_recognition as sr
@@ -15,12 +16,12 @@ import speech_recognition as sr
 recognizer = sr.Recognizer()
 
 
-async def delete_message_task(delete_message, message_id, chat_id):
+async def delete_message_task(delete_message: Callable, message_id: int, chat_id: int) -> None:
     await asyncio.sleep(28800)
     await delete_message(message_id=message_id, chat_id=chat_id)
 
 
-def create_hate_message():
+def create_hate_message() -> str:
     hate_message = ''
     response = httpx.get(url='https://evilinsult.com/generate_insult.php?lang=ru&type=json')
     if response.status_code == http.HTTPStatus.OK:
