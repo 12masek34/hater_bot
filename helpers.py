@@ -45,7 +45,7 @@ def voice_recognizer(file_name: str, language: str = 'ru_RU') -> str:
         except Exception as err:
             text = 'Это невозможно преобразовать в текст.'
 
-    os.remove(file_name)
-    os.remove(f'{name}.wav')
+        os.remove(file_name)
+        os.remove(f'{name}.wav')
 
     return text

@@ -122,7 +122,7 @@ async def speach_to_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 chat_id=update.message.chat_id,
                 reply_to_message_id=update.message.message_id,
                 text='Файл большеват для перевода в текст.',
-                )
+            )
             return
 
         await file.download_to_memory(out=f)
@@ -136,7 +136,7 @@ async def speach_to_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         chat_id=update.message.chat_id,
         reply_to_message_id=update.message.message_id,
         text=text,
-        )
+    )
     loop = asyncio.get_event_loop()
     loop.create_task(delete_message_task(context.bot.deleteMessage, msg.message_id, msg.chat_id))
 
